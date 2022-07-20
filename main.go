@@ -22,7 +22,7 @@ func main() {
 		log.Fatal("Please install Minecraft before initalizing mods.")
 	}
 
-	if pathExists(mcDir + "\\versions\\1.16.5-forge-36.2.23") {
+	if !pathExists(mcDir + "\\versions\\1.16.5-forge-36.2.23") {
 		forgeZip := downloadFile(forgeDownload, appDataDir)
 		err := Unzip(appDataDir+"\\"+forgeZip, appDataDir)
 		if err != nil {
@@ -32,10 +32,13 @@ func main() {
 
 		fullDir := forgeFolder + "\\forge-1.16.5-36.2.23-installer.jar"
 
-		cmd := exec.Command("java", "-jar", fullDir)
-		if err := cmd.Run(); err != nil {
+		err = exec.Command("java", "-jar", fullDir).Run()
+		if err != nil {
 			log.Fatal(err)
 		}
+
+		os.RemoveAll(forgeFolder)
+		os.RemoveAll(appDataDir + "\\" + forgeZip)
 
 		log.Fatal("ass")
 	}
