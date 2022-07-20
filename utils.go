@@ -13,13 +13,17 @@ import (
 	"github.com/cavaliergopher/grab/v3"
 )
 
+// Logs fatal error and exits if err is not nil.
+func checkError(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 func downloadFile(url string, dest string) string {
 	os.MkdirAll(dest, 0755)
 
 	resp, err := grab.Get(dest, url)
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkError(err)
 
 	fmt.Println("Download saved to", resp.Filename)
 
