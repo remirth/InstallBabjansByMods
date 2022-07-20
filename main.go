@@ -16,6 +16,9 @@ func main() {
 	mcDir := os.Getenv("APPDATA") + "\\.minecraft"
 	appDataDir := os.Getenv("APPDATA") + "\\BabjansByTemp"
 	zipsDownload := "https://github.com/exsjabe/BabjansByZips/archive/refs/heads/master.zip"
+	closeExtraction := make(chan bool)
+	closeInstall := make(chan bool)
+	os.RemoveAll(appDataDir)
 
 	toExtract := ExtractAddresses{
 		ExtractAddress{".ResourcePacks.zip", "resourcepacks"},
@@ -34,20 +37,22 @@ func main() {
 	fmt.Println("")
 
 	if !pathExists(mcDir + "\\versions\\1.16.5-forge-36.2.23") {
-		installForge(appDataDir, mcDir)
+		go installForge(appDataDir, mcDir, closeInstall)
+	} else {
+		close(closeInstall)
 	}
 
 	s, _ := spinner.New()
 	s.Message("Downloading mods...")
 	s.Start()
 	fileName := downloadFile(zipsDownload, appDataDir)
-	s.Stop()
+	s.Message("Extracting mods...")
 
 	Unzip(appDataDir+"\\"+fileName, appDataDir)
 
 	folderName := appDataDir + "\\" + strings.Split(fileName, ".zip")[0]
 
-	toExtract.extract(folderName, appDataDir, mcDir)
+	go toExtract.extract(folderName, appDataDir, mcDir, closeExtraction)
 
 	zips, err := os.ReadDir(folderName)
 
@@ -55,32 +60,39 @@ func main() {
 
 	os.MkdirAll(mcDir+"\\mods", 0755)
 
+	files := make(chan string, len(zips))
+
+	workerResults := [3]chan string{make(chan string), make(chan string), make(chan string)}
+	go extractModWorker(files, workerResults[0], folderName, folderName, mcDir)
+	go extractModWorker(files, workerResults[1], folderName, folderName, mcDir)
+	go extractModWorker(files, workerResults[2], folderName, folderName, mcDir)
+
 	for _, zip := range zips {
 		if toExtract.includesZipfile(zip.Name()) {
 			continue
 		}
 
-		err := Unzip(folderName+"\\"+zip.Name(), appDataDir)
+		color.Magenta(fmt.Sprint("Adding ", zip.Name(), " to worker channel."))
+		files <- zip.Name()
+	}
 
-		checkError(err)
+	close(files)
 
-		fullDir := appDataDir + "\\" + strings.Split(zip.Name(), ".zip")[0]
-
-		files, err := os.ReadDir(fullDir)
-
-		checkError(err)
-
-		for _, file := range files {
-			if !pathExists(mcDir + "\\mods\\" + file.Name()) {
-				err := CopyFile(fullDir+"\\"+file.Name(), mcDir+"\\mods\\"+file.Name())
-				checkError(err)
-				color.Yellow("Successfully added " + file.Name() + " to " + "mods folder.")
-			}
+	for i, result := range workerResults {
+		for r := range result {
+			color.Yellow(fmt.Sprint("Worker ", i+1, ": ", r))
 		}
 	}
 
+	if <-closeExtraction {
+		close(closeExtraction)
+	}
+
+	if <-closeInstall {
+		close(closeInstall)
+	}
+
 	s.Message("Cleaning up...")
-	s.Start()
 	os.RemoveAll(appDataDir)
 	s.Stop()
 	color.Magenta("Removed all temp files.")
@@ -88,25 +100,20 @@ func main() {
 
 }
 
-func installForge(workdir string, dest string) {
-	s, _ := spinner.New()
-	s.Message("Downloading forge...")
-	s.Start()
-
+func installForge(workdir string, dest string, Quit chan<- bool) {
+	color.Magenta("Installing Forge...")
 	forgeDownload := "https://github.com/exsjabe/1.16.5-forge-36.2.23/archive/refs/heads/master.zip"
 	forgeZip := downloadFile(forgeDownload, workdir)
-	s.Stop()
-	s.Message("Extracting forge...")
-	s.Start()
 	err := Unzip(workdir+"\\"+forgeZip, workdir)
 	checkError(err)
 	forgeFolder := workdir + "\\" + strings.Split(forgeZip, ".zip")[0]
 
 	fullDir := forgeFolder + "\\forge-1.16.5-36.2.23-installer.jar"
-	s.Stop()
 
 	err = exec.Command("java", "-jar", fullDir).Run()
 	os.RemoveAll(".//forge-1.16.5-36.2.23-installer.jar.log")
 	checkError(err)
 	color.Green("Successfully installed Forge!")
+
+	Quit <- true
 }

@@ -163,3 +163,9 @@ func copyFileContents(src, dst string) (err error) {
 	err = out.Sync()
 	return
 }
+
+func checkPanic(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
