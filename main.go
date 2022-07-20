@@ -14,6 +14,11 @@ func main() {
 	zipsDownload := "https://github.com/exsjabe/BabjansByZips/archive/refs/heads/master.zip"
 	forgeDownload := "https://github.com/exsjabe/1.16.5-forge-36.2.23/archive/refs/heads/master.zip"
 
+	toExtract := ExtractAddresses{
+		ExtractAddress{".ResourcePacks.zip", "resourcepacks"},
+		ExtractAddress{".Shaders.zip", "shaderpacks"},
+	}
+
 	if !commandExists("java") {
 		log.Fatal("Please install Java before initializing mods.")
 	}
@@ -53,29 +58,7 @@ func main() {
 
 	fmt.Println(folderName)
 
-	err := Unzip(folderName+"\\.ResourcePacks.zip", appDataDir)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	packsDir := appDataDir + "\\.ResourcePacks"
-	resourcePacks, err := os.ReadDir(packsDir)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	os.MkdirAll(mcDir+"\\resourcepacks", 0755)
-
-	for _, pack := range resourcePacks {
-		if !pathExists(mcDir + "\\resourcepacks\\" + pack.Name()) {
-			err := CopyFile(packsDir+"\\"+pack.Name(), mcDir+"\\resourcepacks\\"+pack.Name())
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-	}
+	toExtract.extract(folderName, appDataDir, mcDir)
 
 	zips, err := os.ReadDir(folderName)
 
@@ -86,7 +69,7 @@ func main() {
 	os.MkdirAll(mcDir+"\\mods", 0755)
 
 	for _, zip := range zips {
-		if zip.Name() == ".ResourcePacks.zip" || zip.Name() == ".Shaders.zip" {
+		if toExtract.includesZipfile(zip.Name()) {
 			continue
 		}
 
