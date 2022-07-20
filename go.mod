@@ -4,7 +4,7 @@ go 1.18
 
 require github.com/cavaliergopher/grab/v3 v3.0.1
 
-require github.com/zs5460/art v0.2.0 // indirect
+require github.com/zs5460/art v0.2.0
 
 require (
 	github.com/alecrabbit/go-cli-spinner v0.0.0-20200713144005-383070f1912d
