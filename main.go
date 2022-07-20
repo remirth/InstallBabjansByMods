@@ -39,8 +39,6 @@ func main() {
 
 		os.RemoveAll(forgeFolder)
 		os.RemoveAll(appDataDir + "\\" + forgeZip)
-
-		log.Fatal("ass")
 	}
 
 	fmt.Println(mcDir)
