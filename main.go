@@ -10,7 +10,7 @@ import (
 
 func main() {
 	mcDir := os.Getenv("APPDATA") + "\\.minecraft"
-	appDataDir := os.Getenv("APPDATA") + "\\BabjansByMods"
+	appDataDir := os.Getenv("APPDATA") + "\\BabjansByTemp"
 	zipsDownload := "https://github.com/exsjabe/BabjansByZips/archive/refs/heads/master.zip"
 	forgeDownload := "https://github.com/exsjabe/1.16.5-forge-36.2.23/archive/refs/heads/master.zip"
 
@@ -19,7 +19,7 @@ func main() {
 	}
 
 	if !pathExists(mcDir) {
-		log.Fatal("Please install Minecraft before iniitalizing mods.")
+		log.Fatal("Please install Minecraft before initializing mods.")
 	}
 
 	if !pathExists(mcDir + "\\versions\\1.16.5-forge-36.2.23") {
@@ -77,18 +77,43 @@ func main() {
 		}
 	}
 
-	// zips, err := os.ReadDir(folderName)
+	zips, err := os.ReadDir(folderName)
 
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// for _, zip := range zips {
-	// 	if zip.Name() == ".ResourcePacks.zip" {
-	// 		continue
-	// 	} else {
+	os.MkdirAll(mcDir+"\\mods", 0755)
 
-	// 	}
-	// }
+	for _, zip := range zips {
+		if zip.Name() == ".ResourcePacks.zip" || zip.Name() == ".Shaders.zip" {
+			continue
+		}
+
+		err := Unzip(folderName+"\\"+zip.Name(), appDataDir)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fullDir := appDataDir + "\\" + strings.Split(zip.Name(), ".zip")[0]
+
+		files, err := os.ReadDir(fullDir)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for _, file := range files {
+			if !pathExists(mcDir + "\\mods\\" + file.Name()) {
+				err := CopyFile(fullDir+"\\"+file.Name(), mcDir+"\\mods\\"+file.Name())
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+		}
+	}
+
+	os.RemoveAll(appDataDir)
 
 }
