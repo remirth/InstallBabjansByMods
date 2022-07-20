@@ -15,7 +15,7 @@ func main() {
 	forgeDownload := "https://github.com/exsjabe/1.16.5-forge-36.2.23/archive/refs/heads/master.zip"
 
 	if !commandExists("java") {
-		log.Fatal("Please install Java before before initializing mods.")
+		log.Fatal("Please install Java before initializing mods.")
 	}
 
 	if !pathExists(mcDir) {
