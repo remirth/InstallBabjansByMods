@@ -49,8 +49,46 @@ func main() {
 
 	Unzip(appDataDir+"\\"+fileName, appDataDir)
 
-	folderName := strings.Split(fileName, ".zip")[0]
+	folderName := appDataDir + "\\" + strings.Split(fileName, ".zip")[0]
 
 	fmt.Println(folderName)
+
+	err := Unzip(folderName+"\\.ResourcePacks.zip", appDataDir)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	packsDir := appDataDir + "\\.ResourcePacks"
+	resourcePacks, err := os.ReadDir(packsDir)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	os.MkdirAll(mcDir+"\\resourcepacks", 0755)
+
+	for _, pack := range resourcePacks {
+		if !pathExists(mcDir + "\\resourcepacks\\" + pack.Name()) {
+			err := CopyFile(packsDir+"\\"+pack.Name(), mcDir+"\\resourcepacks\\"+pack.Name())
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+
+	// zips, err := os.ReadDir(folderName)
+
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// for _, zip := range zips {
+	// 	if zip.Name() == ".ResourcePacks.zip" {
+	// 		continue
+	// 	} else {
+
+	// 	}
+	// }
 
 }
