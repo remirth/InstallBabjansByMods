@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -12,7 +11,6 @@ func main() {
 	mcDir := os.Getenv("APPDATA") + "\\.minecraft"
 	appDataDir := os.Getenv("APPDATA") + "\\BabjansByTemp"
 	zipsDownload := "https://github.com/exsjabe/BabjansByZips/archive/refs/heads/master.zip"
-	forgeDownload := "https://github.com/exsjabe/1.16.5-forge-36.2.23/archive/refs/heads/master.zip"
 
 	toExtract := ExtractAddresses{
 		ExtractAddress{".ResourcePacks.zip", "resourcepacks"},
@@ -28,43 +26,20 @@ func main() {
 	}
 
 	if !pathExists(mcDir + "\\versions\\1.16.5-forge-36.2.23") {
-		forgeZip := downloadFile(forgeDownload, appDataDir)
-		err := Unzip(appDataDir+"\\"+forgeZip, appDataDir)
-		if err != nil {
-			log.Fatal(err)
-		}
-		forgeFolder := appDataDir + "\\" + strings.Split(forgeZip, ".zip")[0]
-
-		fullDir := forgeFolder + "\\forge-1.16.5-36.2.23-installer.jar"
-
-		err = exec.Command("java", "-jar", fullDir).Run()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		os.RemoveAll(forgeFolder)
-		os.RemoveAll(appDataDir + "\\" + forgeZip)
+		installForge(appDataDir, mcDir)
 	}
 
-	fmt.Println(mcDir)
-	fmt.Println(forgeDownload)
-
 	fileName := downloadFile(zipsDownload, appDataDir)
-	fmt.Println(fileName)
 
 	Unzip(appDataDir+"\\"+fileName, appDataDir)
 
 	folderName := appDataDir + "\\" + strings.Split(fileName, ".zip")[0]
 
-	fmt.Println(folderName)
-
 	toExtract.extract(folderName, appDataDir, mcDir)
 
 	zips, err := os.ReadDir(folderName)
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkError(err)
 
 	os.MkdirAll(mcDir+"\\mods", 0755)
 
@@ -75,28 +50,36 @@ func main() {
 
 		err := Unzip(folderName+"\\"+zip.Name(), appDataDir)
 
-		if err != nil {
-			log.Fatal(err)
-		}
+		checkError(err)
 
 		fullDir := appDataDir + "\\" + strings.Split(zip.Name(), ".zip")[0]
 
 		files, err := os.ReadDir(fullDir)
 
-		if err != nil {
-			log.Fatal(err)
-		}
+		checkError(err)
 
 		for _, file := range files {
 			if !pathExists(mcDir + "\\mods\\" + file.Name()) {
 				err := CopyFile(fullDir+"\\"+file.Name(), mcDir+"\\mods\\"+file.Name())
-				if err != nil {
-					log.Fatal(err)
-				}
+				checkError(err)
 			}
 		}
 	}
 
 	os.RemoveAll(appDataDir)
 
+}
+
+func installForge(workdir string, dest string) {
+	forgeDownload := "https://github.com/exsjabe/1.16.5-forge-36.2.23/archive/refs/heads/master.zip"
+	forgeZip := downloadFile(forgeDownload, workdir)
+	err := Unzip(workdir+"\\"+forgeZip, workdir)
+	checkError(err)
+	forgeFolder := workdir + "\\" + strings.Split(forgeZip, ".zip")[0]
+
+	fullDir := forgeFolder + "\\forge-1.16.5-36.2.23-installer.jar"
+
+	err = exec.Command("java", "-jar", fullDir).Run()
+	os.RemoveAll(".//forge-1.16.5-36.2.23-installer.jar.log")
+	checkError(err)
 }
