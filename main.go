@@ -15,11 +15,11 @@ func main() {
 	forgeDownload := "https://github.com/exsjabe/1.16.5-forge-36.2.23/archive/refs/heads/master.zip"
 
 	if !commandExists("java") {
-		log.Fatal("Please install Java before before initalizing mods.")
+		log.Fatal("Please install Java before before initializing mods.")
 	}
 
 	if !pathExists(mcDir) {
-		log.Fatal("Please install Minecraft before initalizing mods.")
+		log.Fatal("Please install Minecraft before iniitalizing mods.")
 	}
 
 	if !pathExists(mcDir + "\\versions\\1.16.5-forge-36.2.23") {
