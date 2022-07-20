@@ -1,10 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"strings"
+
+	spinner "github.com/alecrabbit/go-cli-spinner"
+	"github.com/fatih/color"
+	"github.com/zs5460/art"
 )
 
 func main() {
@@ -25,11 +30,18 @@ func main() {
 		log.Fatal("Please install Minecraft before initializing mods.")
 	}
 
+	print(art.String("BabjansBy"))
+	fmt.Println("")
+
 	if !pathExists(mcDir + "\\versions\\1.16.5-forge-36.2.23") {
 		installForge(appDataDir, mcDir)
 	}
 
+	s, _ := spinner.New()
+	s.Message("Downloading mods...")
+	s.Start()
 	fileName := downloadFile(zipsDownload, appDataDir)
+	s.Stop()
 
 	Unzip(appDataDir+"\\"+fileName, appDataDir)
 
@@ -62,24 +74,39 @@ func main() {
 			if !pathExists(mcDir + "\\mods\\" + file.Name()) {
 				err := CopyFile(fullDir+"\\"+file.Name(), mcDir+"\\mods\\"+file.Name())
 				checkError(err)
+				color.Yellow("Successfully added " + file.Name() + " to " + "mods folder.")
 			}
 		}
 	}
 
+	s.Message("Cleaning up...")
+	s.Start()
 	os.RemoveAll(appDataDir)
+	s.Stop()
+	color.Magenta("Removed all temp files.")
+	color.Green("Successfully installed all BabjansBy mods!.")
 
 }
 
 func installForge(workdir string, dest string) {
+	s, _ := spinner.New()
+	s.Message("Downloading forge...")
+	s.Start()
+
 	forgeDownload := "https://github.com/exsjabe/1.16.5-forge-36.2.23/archive/refs/heads/master.zip"
 	forgeZip := downloadFile(forgeDownload, workdir)
+	s.Stop()
+	s.Message("Extracting forge...")
+	s.Start()
 	err := Unzip(workdir+"\\"+forgeZip, workdir)
 	checkError(err)
 	forgeFolder := workdir + "\\" + strings.Split(forgeZip, ".zip")[0]
 
 	fullDir := forgeFolder + "\\forge-1.16.5-36.2.23-installer.jar"
+	s.Stop()
 
 	err = exec.Command("java", "-jar", fullDir).Run()
 	os.RemoveAll(".//forge-1.16.5-36.2.23-installer.jar.log")
 	checkError(err)
+	color.Green("Successfully installed Forge!")
 }

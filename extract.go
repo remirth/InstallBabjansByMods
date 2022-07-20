@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 	"strings"
+
+	"github.com/fatih/color"
 )
 
 type ExtractAddress struct {
@@ -39,6 +41,7 @@ func (ea ExtractAddresses) extract(src string, workdir string, dest string) {
 			if !pathExists(dest + "\\" + v.destination + "\\" + file.Name()) {
 				err := CopyFile(unzippedDir+"\\"+file.Name(), dest+"\\"+v.destination+"\\"+file.Name())
 				checkError(err)
+				color.Cyan("Successfully added " + file.Name() + " to " + v.destination + ".")
 			}
 		}
 	}

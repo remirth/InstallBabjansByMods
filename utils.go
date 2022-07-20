@@ -25,8 +25,6 @@ func downloadFile(url string, dest string) string {
 	resp, err := grab.Get(dest, url)
 	checkError(err)
 
-	fmt.Println("Download saved to", resp.Filename)
-
 	pathParts := strings.Split(resp.Filename, "\\")
 	return pathParts[len(pathParts)-1]
 }
