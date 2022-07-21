@@ -4,7 +4,7 @@ How to get on the BabjansBy Minecraft Server
 
 # Requirements
 - Installed Java
-- Installed Minecract
+- Installed Minecraft
 
 # Instructions
 - Join the discord: https://discord.com/channels/950098776679411853/950100612362686565
