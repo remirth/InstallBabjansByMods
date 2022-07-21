@@ -97,6 +97,8 @@ func main() {
 	color.Magenta("Removed all temp files.")
 	s.Stop()
 	color.Green("Successfully installed all BabjansBy mods!.")
+	color.Magenta("Press any key to close this window...")
+	fmt.Scanln()
 
 }
 
