@@ -20,24 +20,24 @@ func main() {
 	closeInstall := make(chan bool)
 	os.RemoveAll(appDataDir)
 
-	toExtract := ExtractAddresses{
-		ExtractAddress{".ResourcePacks.zip", "resourcepacks"},
-		ExtractAddress{".Shaders.zip", "shaderpacks"},
+	toExtract := ExtractRecord{
+		ExtractBundle{".ResourcePacks.zip", "resourcepacks"},
+		ExtractBundle{".Shaders.zip", "shaderpacks"},
 	}
 
-	if !commandExists("java") {
+	if !CommandExists("java") {
 		log.Fatal("Please install Java before initializing mods.")
 	}
 
-	if !pathExists(mcDir) {
+	if !PathExists(mcDir) {
 		log.Fatal("Please install Minecraft before initializing mods.")
 	}
 
 	print(art.String("BabjansBy"))
 	fmt.Println("")
 
-	if !pathExists(mcDir + "\\versions\\1.16.5-forge-36.2.23") {
-		go installForge(appDataDir, mcDir, closeInstall)
+	if !PathExists(mcDir + "\\versions\\1.16.5-forge-36.2.23") {
+		go InstallForge(appDataDir, mcDir, closeInstall)
 	} else {
 		close(closeInstall)
 	}
@@ -45,7 +45,7 @@ func main() {
 	s, _ := spinner.New()
 	s.Message("Downloading mods...")
 	s.Start()
-	fileName := downloadFile(zipsDownload, appDataDir)
+	fileName := DownloadFile(zipsDownload, appDataDir)
 	s.Message("Extracting mods...")
 
 	Unzip(appDataDir+"\\"+fileName, appDataDir)
@@ -56,7 +56,7 @@ func main() {
 
 	zips, err := os.ReadDir(folderName)
 
-	checkError(err)
+	CheckError(err)
 
 	os.MkdirAll(mcDir+"\\mods", 0755)
 
@@ -94,25 +94,25 @@ func main() {
 
 	s.Message("Cleaning up...")
 	os.RemoveAll(appDataDir)
-	s.Stop()
 	color.Magenta("Removed all temp files.")
+	s.Stop()
 	color.Green("Successfully installed all BabjansBy mods!.")
 
 }
 
-func installForge(workdir string, dest string, Quit chan<- bool) {
+func InstallForge(workdir string, dest string, Quit chan<- bool) {
 	color.Magenta("Installing Forge...")
 	forgeDownload := "https://github.com/exsjabe/1.16.5-forge-36.2.23/archive/refs/heads/master.zip"
-	forgeZip := downloadFile(forgeDownload, workdir)
+	forgeZip := DownloadFile(forgeDownload, workdir)
 	err := Unzip(workdir+"\\"+forgeZip, workdir)
-	checkError(err)
+	CheckError(err)
 	forgeFolder := workdir + "\\" + strings.Split(forgeZip, ".zip")[0]
 
 	fullDir := forgeFolder + "\\forge-1.16.5-36.2.23-installer.jar"
 
 	err = exec.Command("java", "-jar", fullDir).Run()
 	os.RemoveAll(".//forge-1.16.5-36.2.23-installer.jar.log")
-	checkError(err)
+	CheckError(err)
 	color.Green("Successfully installed Forge!")
 
 	Quit <- true

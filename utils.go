@@ -13,33 +13,37 @@ import (
 	"github.com/cavaliergopher/grab/v3"
 )
 
-// Logs fatal error and exits if err is not nil.
-func checkError(err error) {
+// CheckError logs.Fatal if err is not nil.
+func CheckError(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
 }
-func downloadFile(url string, dest string) string {
+
+// DownloadFile downloads the file at the given url to the given path and returns it's name.
+func DownloadFile(url string, dest string) string {
 	os.MkdirAll(dest, 0755)
 
 	resp, err := grab.Get(dest, url)
-	checkError(err)
+	CheckError(err)
 
 	pathParts := strings.Split(resp.Filename, "\\")
 	return pathParts[len(pathParts)-1]
 }
 
-// Checks whether a command exists by searching $PATH.
-func commandExists(cmd string) bool {
+// CommandExists returns a boolean indicating whether the command exists on $PATH.
+func CommandExists(cmd string) bool {
 	_, err := exec.LookPath(cmd)
 	return err == nil
 }
 
-func pathExists(path string) bool {
+// Returns a boolean indicating whether the file exists.
+func PathExists(path string) bool {
 	_, err := os.Stat(path)
 	return !os.IsNotExist(err)
 }
 
+// Unzip extracts a zip file to the given directory.
 func Unzip(src, dest string) error {
 	r, err := zip.OpenReader(src)
 	if err != nil {
@@ -164,7 +168,8 @@ func copyFileContents(src, dst string) (err error) {
 	return
 }
 
-func checkPanic(err error) {
+// CheckPanic panics if err is not nil.
+func CheckPanic(err error) {
 	if err != nil {
 		panic(err)
 	}
