@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"strings"
 	"sync"
@@ -25,8 +24,8 @@ func extractMods(fname, src, workdir, dest string) {
 	CheckPanic(err)
 
 	for _, file := range files {
+		wg.Add(1)
 		go func(file string) {
-			wg.Add(1)
 			moveMod(file, fullDir, dest)
 			wg.Done()
 		}(file.Name())
@@ -40,9 +39,9 @@ func moveMod(filename, src, dest string) {
 	if !PathExists(dest + "\\mods\\" + filename) {
 		err := CopyFile(src+"\\"+filename, dest+"\\mods\\"+filename)
 		CheckPanic(err)
-		color.Cyan(fmt.Sprint("Successfully added " + filename + " to " + "mods folder."))
+		color.Yellow("Successfully added " + filename + " to " + "mods folder.")
 	} else {
-		color.Cyan(fmt.Sprint(filename + " already exists in " + "mods folder."))
+		color.Yellow(filename + " already exists in " + "mods folder.")
 	}
 
 }
