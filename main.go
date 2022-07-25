@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 
 	spinner "github.com/alecrabbit/go-cli-spinner"
 	"github.com/fatih/color"
@@ -16,8 +17,7 @@ func main() {
 	mcDir := os.Getenv("APPDATA") + "\\.minecraft"
 	appDataDir := os.Getenv("APPDATA") + "\\BabjansByTemp"
 	zipsDownload := "https://github.com/exsjabe/BabjansByZips/archive/refs/heads/master.zip"
-	closeExtraction := make(chan bool)
-	closeInstall := make(chan bool)
+	wg := sync.WaitGroup{}
 	os.RemoveAll(appDataDir)
 
 	toExtract := ExtractRecord{
@@ -37,11 +37,12 @@ func main() {
 	fmt.Println("")
 
 	if !PathExists(mcDir + "\\versions\\1.16.5-forge-36.2.23") {
-		go InstallForge(appDataDir, mcDir, closeInstall)
-	} else {
-		close(closeInstall)
+		wg.Add(1)
+		go func() {
+			InstallForge(appDataDir, mcDir)
+			wg.Done()
+		}()
 	}
-
 	s, _ := spinner.New()
 	s.Message("Downloading mods...")
 	s.Start()
@@ -52,7 +53,11 @@ func main() {
 
 	folderName := appDataDir + "\\" + strings.Split(fileName, ".zip")[0]
 
-	go toExtract.extract(folderName, appDataDir, mcDir, closeExtraction)
+	wg.Add(1)
+	go func() {
+		toExtract.extract(folderName, appDataDir, mcDir)
+		wg.Done()
+	}()
 
 	zips, err := os.ReadDir(folderName)
 
@@ -60,49 +65,30 @@ func main() {
 
 	os.MkdirAll(mcDir+"\\mods", 0755)
 
-	files := make(chan string, len(zips))
-
-	workerResults := [3]chan string{make(chan string), make(chan string), make(chan string)}
-	go extractModWorker(files, workerResults[0], folderName, folderName, mcDir)
-	go extractModWorker(files, workerResults[1], folderName, folderName, mcDir)
-	go extractModWorker(files, workerResults[2], folderName, folderName, mcDir)
-
 	for _, zip := range zips {
 		if toExtract.includesZipfile(zip.Name()) {
 			continue
 		}
+		wg.Add(1)
+		go func(fname string) {
+			defer wg.Done()
+			extractMods(fname, folderName, appDataDir, mcDir)
+		}(zip.Name())
 
-		color.Magenta(fmt.Sprint("Adding ", zip.Name(), " to worker channel."))
-		files <- zip.Name()
 	}
 
-	close(files)
-
-	for i, result := range workerResults {
-		for r := range result {
-			color.Yellow(fmt.Sprint("Worker ", i+1, ": ", r))
-		}
-	}
-
-	if <-closeExtraction {
-		close(closeExtraction)
-	}
-
-	if <-closeInstall {
-		close(closeInstall)
-	}
-
+	wg.Wait()
 	s.Message("Cleaning up...")
 	os.RemoveAll(appDataDir)
 	color.Magenta("Removed all temp files.")
 	s.Stop()
-	color.Green("Successfully installed all BabjansBy mods!.")
+	color.Green("Successfully installed all BabjansBy mods!")
 	color.Magenta("Press any key to close this window...")
 	fmt.Scanln()
 
 }
 
-func InstallForge(workdir string, dest string, Quit chan<- bool) {
+func InstallForge(workdir, dest string) {
 	color.Magenta("Installing Forge...")
 	forgeDownload := "https://github.com/exsjabe/1.16.5-forge-36.2.23/archive/refs/heads/master.zip"
 	forgeZip := DownloadFile(forgeDownload, workdir)
@@ -117,5 +103,4 @@ func InstallForge(workdir string, dest string, Quit chan<- bool) {
 	CheckError(err)
 	color.Green("Successfully installed Forge!")
 
-	Quit <- true
 }

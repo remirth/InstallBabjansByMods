@@ -35,7 +35,7 @@ func (ea ExtractRecord) includesZipfile(zipfile string) bool {
 
 // Extract extracts the record's zipfiles to their destination.
 // src corresponds to the source directory, workDir corresponds to the temporary directory, and dest corresponds to the destination directory.
-func (ea ExtractRecord) extract(src, workDir, dest string, Quit chan<- bool) {
+func (ea ExtractRecord) extract(src, workDir, dest string) {
 	wg := sync.WaitGroup{}
 	for _, eb := range ea {
 		wg.Add(1)
