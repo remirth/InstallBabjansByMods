@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/fatih/color"
 )
@@ -18,7 +19,7 @@ type ExtractRecord []ExtractBundle
 
 // ExtractionWorkerOptions contains the options needed for the ExtractionWorker to move the files.
 type ExtractionWorkerOptions struct {
-	workdir string
+	workDir string
 	dest    string
 }
 
@@ -33,43 +34,51 @@ func (ea ExtractRecord) includesZipfile(zipfile string) bool {
 }
 
 // Extract extracts the record's zipfiles to their destination.
-// src corresponds to the source directory, workdir corresponds to the temporary directory, and dest corresponds to the destination directory.
-func (ea ExtractRecord) extract(src, workdir, dest string, Quit chan<- bool) {
-	workerChannel := make(chan ExtractionWorkerOptions)
-	go moveExtractionsWorker(workerChannel, Quit, src, workdir, dest)
-	for _, v := range ea {
-		err := Unzip(src+"\\"+v.zipfile, workdir)
-
-		CheckPanic(err)
-
-		os.MkdirAll(dest+"\\"+v.destination, 0755)
-
-		unzippedDir := workdir + "\\" + strings.Split(v.zipfile, ".zip")[0]
-
-		workerChannel <- ExtractionWorkerOptions{unzippedDir, v.destination}
+// src corresponds to the source directory, workDir corresponds to the temporary directory, and dest corresponds to the destination directory.
+func (ea ExtractRecord) extract(src, workDir, dest string, Quit chan<- bool) {
+	wg := sync.WaitGroup{}
+	for _, eb := range ea {
+		wg.Add(1)
+		go func(eb ExtractBundle) {
+			defer wg.Done()
+			eb.extractFile(src, workDir, dest)
+		}(eb)
 	}
-
-	close(workerChannel)
 
 }
 
-// ExtractionWorker copies the files indicated by the given options-channel to the destination indicated by the options.
-// src corresponds to the source directory, workdir corresponds to the temporary directory, and dest corresponds to the destination directory.
-func moveExtractionsWorker(options <-chan ExtractionWorkerOptions, Quit chan<- bool, src, workdir, dest string) {
-	for option := range options {
-		files, err := os.ReadDir(option.workdir)
-		CheckPanic(err)
+func (eb ExtractBundle) extractFile(src, workDir, dest string) {
 
-		for _, file := range files {
-			if !PathExists(dest + "\\" + option.dest + "\\" + file.Name()) {
-				err := CopyFile(option.workdir+"\\"+file.Name(), dest+"\\"+option.dest+"\\"+file.Name())
-				CheckPanic(err)
-				color.Cyan("Successfully added " + file.Name() + " to " + option.dest + ".")
-			} else {
-				color.Cyan(file.Name() + " already exists in " + option.dest + ".")
-			}
-		}
+	err := Unzip(src+"\\"+eb.zipfile, workDir)
+
+	CheckPanic(err)
+
+	os.MkdirAll(dest+"\\"+eb.destination, 0755)
+
+	unzippedDir := workDir + "\\" + strings.Split(eb.zipfile, ".zip")[0]
+	wg := sync.WaitGroup{}
+
+	files, err := os.ReadDir(unzippedDir)
+	CheckPanic(err)
+	for _, file := range files {
+		wg.Add(1)
+		go func(file string) {
+			defer wg.Done()
+			moveExtractedFile(file, unzippedDir, eb.destination, dest)
+		}(file.Name())
 	}
-	Quit <- true
+	wg.Wait()
+}
+
+// moveExtractedFiles moves the files from the workingdirectory to the targetFolder in the target directory.
+func moveExtractedFile(file, workDir, targetFolder, targetDir string) {
+
+	if !PathExists(targetDir + "\\" + targetFolder + "\\" + file) {
+		err := CopyFile(workDir+"\\"+file, targetDir+"\\"+targetFolder+"\\"+file)
+		CheckPanic(err)
+		color.Cyan("Successfully added " + file + " to " + targetFolder + ".")
+	} else {
+		color.Cyan(file + " already exists in " + targetFolder + ".")
+	}
 
 }
