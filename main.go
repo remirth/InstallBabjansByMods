@@ -7,8 +7,9 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"time"
 
-	spinner "github.com/alecrabbit/go-cli-spinner"
+	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
 	"github.com/zs5460/art"
 )
@@ -43,11 +44,11 @@ func main() {
 			wg.Done()
 		}()
 	}
-	s, _ := spinner.New()
-	s.Message("Downloading mods...")
+	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+	s.Suffix = ("Downloading mods...")
 	s.Start()
 	fileName := DownloadFile(zipsDownload, appDataDir)
-	s.Message("Extracting mods...")
+	s.Suffix = ("Extracting mods...")
 
 	Unzip(appDataDir+"\\"+fileName, appDataDir)
 
@@ -55,8 +56,8 @@ func main() {
 
 	wg.Add(1)
 	go func() {
-		toExtract.extract(folderName, appDataDir, mcDir)
-		wg.Done()
+		defer wg.Done()
+		HandleExtraction(toExtract, folderName, appDataDir, mcDir)
 	}()
 
 	zips, err := os.ReadDir(folderName)
@@ -65,20 +66,30 @@ func main() {
 
 	os.MkdirAll(mcDir+"\\mods", 0755)
 
-	for _, zip := range zips {
-		if toExtract.includesZipfile(zip.Name()) {
-			continue
-		}
-		wg.Add(1)
-		go func(fname string) {
-			defer wg.Done()
-			extractMods(fname, folderName, appDataDir, mcDir)
-		}(zip.Name())
+	res := make(chan string)
+	go func() {
+		modsWg := sync.WaitGroup{}
+		defer close(res)
+		for _, zip := range zips {
+			if toExtract.includesZipfile(zip.Name()) {
+				continue
+			}
+			modsWg.Add(1)
+			go func(fname string) {
+				defer modsWg.Done()
+				extractMods(fname, folderName, appDataDir, mcDir, res)
+			}(zip.Name())
 
+		}
+		modsWg.Wait()
+	}()
+
+	for str := range res {
+		color.Yellow(str)
 	}
 
 	wg.Wait()
-	s.Message("Cleaning up...")
+	s.Suffix = ("Cleaning up...")
 	os.RemoveAll(appDataDir)
 	color.Magenta("Removed all temp files.")
 	s.Stop()
@@ -88,6 +99,16 @@ func main() {
 
 }
 
+func HandleExtraction(er ExtractRecord, src, tempdir, targetDir string) {
+	res := make(chan string)
+	go func() {
+		defer close(res)
+		er.extract(src, tempdir, targetDir, res)
+	}()
+	for r := range res {
+		color.Cyan(r)
+	}
+}
 func InstallForge(workdir, dest string) {
 	color.Magenta("Installing Forge...")
 	forgeDownload := "https://github.com/exsjabe/1.16.5-forge-36.2.23/archive/refs/heads/master.zip"

@@ -4,13 +4,11 @@ import (
 	"os"
 	"strings"
 	"sync"
-
-	"github.com/fatih/color"
 )
 
 // extractMods extracts the mod files from the given zip file to the mods directory.
 // src corresponds to the source directory, workdir corresponds to the temporary directory, and dest corresponds to the destination directory.
-func extractMods(fname, src, workdir, dest string) {
+func extractMods(fname, src, workdir, dest string, res chan<- string) {
 
 	wg := sync.WaitGroup{}
 	err := Unzip(src+"\\"+fname, workdir)
@@ -26,7 +24,7 @@ func extractMods(fname, src, workdir, dest string) {
 	for _, file := range files {
 		wg.Add(1)
 		go func(file string) {
-			moveMod(file, fullDir, dest)
+			moveMod(file, fullDir, dest, res)
 			wg.Done()
 		}(file.Name())
 	}
@@ -35,13 +33,13 @@ func extractMods(fname, src, workdir, dest string) {
 }
 
 // moveMod moves a mod files from the temporary directory to the mods directory.
-func moveMod(filename, src, dest string) {
+func moveMod(filename, src, dest string, res chan<- string) {
 	if !PathExists(dest + "\\mods\\" + filename) {
 		err := CopyFile(src+"\\"+filename, dest+"\\mods\\"+filename)
 		CheckPanic(err)
-		color.Yellow("Successfully added " + filename + " to " + "mods folder.")
+		res <- ("Successfully added " + filename + " to " + "mods folder.")
 	} else {
-		color.Yellow(filename + " already exists in " + "mods folder.")
+		res <- (filename + " already exists in " + "mods folder.")
 	}
 
 }
